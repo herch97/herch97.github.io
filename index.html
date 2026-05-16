@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NutriRoch">
+<meta name="theme-color" content="#0a0a1a">
+<title>NutriRoch</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0a0a1a;
+  --bg2: #0f0f28;
+  --surface: #151530;
+  --surface2: #1e1e45;
+  --accent: #7c3aed;
+  --accent2: #a855f7;
+  --accent3: #c084fc;
+  --green: #22c55e;
+  --orange: #f97316;
+  --red: #ef4444;
+  --blue: #38bdf8;
+  --yellow: #facc15;
+  --pink: #ec4899;
+  --text: #f1f5f9;
+  --text-soft: #94a3b8;
+  --border: rgba(124,58,237,0.2);
+  --tab-h: 68px;
+  --r: 18px;
+  --r-sm: 12px;
+  --glow: 0 0 20px rgba(124,58,237,0.3);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+/* ── PIN SCREEN ── */
+#pinScreen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: radial-gradient(ellipse at 50% 30%, #1a0a40 0%, var(--bg) 70%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px;
+}
+.pin-logo { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; background: linear-gradient(135deg, var(--accent2), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+.pin-subtitle { font-size: 12px; color: var(--text-soft); margin-bottom: 48px; letter-spacing: 2px; text-transform: uppercase; }
+.pin-dots { display: flex; gap: 18px; margin-bottom: 44px; }
+.pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--surface2); background: transparent; transition: all 0.2s; }
+.pin-dot.filled { background: var(--accent2); border-color: var(--accent2); box-shadow: 0 0 12px var(--accent2); transform: scale(1.15); }
+.pin-dot.error { background: var(--red); border-color: var(--red); animation: shake 0.35s ease; }
+@keyframes shake { 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-8px); } 75%{ transform:translateX(8px); } }
+.pin-grid { display: grid; grid-template-columns: repeat(3, 76px); gap: 12px; }
+.pin-key { width: 76px; height: 76px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 700; color: var(--text); cursor: pointer; transition: all 0.2s; }
+.pin-key:active { background: var(--accent); transform: scale(0.92); box-shadow: var(--glow); }
+.pin-key.del { font-size: 20px; color: var(--text-soft); background: transparent; border-color: transparent; }
+.pin-key.empty { background: transparent; border-color: transparent; pointer-events: none; }
+.pin-error-msg { margin-top: 24px; font-size: 11px; color: var(--red); opacity: 0; transition: opacity 0.2s; letter-spacing: 1px; }
+.pin-error-msg.show { opacity: 1; }
+
+/* ── HEADER ── */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,10,26,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.app-name { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, var(--accent2), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.day-toggle { display: flex; gap: 0; border-radius: 20px; overflow: hidden; border: 1px solid var(--border); }
+.day-toggle-btn { padding: 5px 12px; font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; border: none; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
+.day-toggle-btn.train { background: var(--green); color: #000; }
+.day-toggle-btn.off { background: transparent; color: var(--text-soft); }
+.day-toggle-btn.active-off { background: var(--orange); color: #000; }
+.day-toggle-btn.inactive-train { background: transparent; color: var(--text-soft); }
+
+/* ── MACRO SUMMARY ── */
+.macro-summary {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--bg2) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px 12px;
+}
+.macro-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px; }
+.macro-main-val { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; background: linear-gradient(135deg, var(--accent2), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; }
+.macro-main-label { font-size: 10px; color: var(--text-soft); margin-top: 3px; }
+.macro-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-end; margin-left: auto; }
+.macro-chip { text-align: center; background: var(--surface2); border-radius: var(--r-sm); padding: 7px 11px; border: 1px solid var(--border); }
+.mc-val { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; line-height: 1; }
+.mc-label { font-size: 9px; color: var(--text-soft); margin-top: 2px; }
+.mc-val.prot { color: var(--blue); }
+.mc-val.gluc { color: var(--yellow); }
+.mc-val.lip  { color: var(--orange); }
+.bars { display: flex; gap: 6px; }
+.bar-wrap { flex: 1; }
+.bar-label { font-size: 9px; color: var(--text-soft); margin-bottom: 4px; display: flex; justify-content: space-between; }
+.bar-track { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+.bar-fill.kcal { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.bar-fill.prot { background: linear-gradient(90deg, #0ea5e9, var(--blue)); }
+.bar-fill.gluc { background: linear-gradient(90deg, #eab308, var(--yellow)); }
+.bar-fill.lip  { background: linear-gradient(90deg, #ea580c, var(--orange)); }
+
+/* ── TABS ── */
+.tabs {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; height: var(--tab-h);
+  background: rgba(10,10,26,0.97); backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex; z-index: 200;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: none; background: none; cursor: pointer; font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 700; color: var(--text-soft); transition: color 0.2s; }
+.tab-btn.active { color: var(--accent2); }
+.tab-icon { font-size: 20px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 10px; transition: background 0.2s; }
+.tab-btn.active .tab-icon { background: rgba(124,58,237,0.2); }
+
+/* ── PAGES ── */
+.page { display: none; padding: 0 0 calc(var(--tab-h) + 16px); animation: fadeIn 0.2s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+
+/* ── CARDS ── */
+.card { background: var(--surface); border-radius: var(--r); margin: 12px 16px; border: 1px solid var(--border); overflow: hidden; }
+.card-header { padding: 14px 16px 0; display: flex; justify-content: space-between; align-items: center; }
+.card-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--accent3); text-transform: uppercase; letter-spacing: 0.8px; }
+.card-body { padding: 14px 16px; }
+
+/* ── SEC ── */
+.sec { padding: 16px 20px 0; }
+.sec-label { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-soft); margin-bottom: 10px; }
+
+/* ── BUTTONS ── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 18px; border-radius: var(--r-sm); border: none; cursor: pointer; font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; box-shadow: 0 4px 15px rgba(124,58,237,0.4); }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost { background: transparent; color: var(--accent2); border: 1px solid var(--border); }
+.btn-green { background: linear-gradient(135deg, #16a34a, var(--green)); color: white; }
+.btn-orange { background: linear-gradient(135deg, #ea580c, var(--orange)); color: white; }
+.btn-full { width: 100%; }
+.btn-sm { padding: 8px 14px; font-size: 11px; }
+.btn-danger { background: linear-gradient(135deg, #dc2626, var(--red)); color: white; }
+
+/* ── INPUTS ── */
+.field { margin-bottom: 12px; }
+.field-label { font-size: 10px; color: var(--text-soft); font-weight: 500; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+.input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 11px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; transition: all 0.2s; }
+.input:focus { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(168,85,247,0.1); outline: none; }
+.input::placeholder { color: var(--text-soft); }
+select.input { appearance: none; cursor: pointer; }
+
+/* ── MEAL TABS ── */
+.meal-tabs { display: flex; padding: 0 16px; gap: 6px; margin-bottom: 12px; overflow-x: auto; scrollbar-width: none; }
+.meal-tabs::-webkit-scrollbar { display: none; }
+.meal-tab { flex-shrink: 0; padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-soft); font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.meal-tab.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border-color: transparent; box-shadow: 0 4px 12px rgba(124,58,237,0.4); }
+
+/* ── SEARCH ── */
+.search-wrap { padding: 0 16px; margin-bottom: 10px; position: relative; }
+.search-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px 44px 12px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; transition: all 0.2s; }
+.search-input:focus { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(168,85,247,0.1); outline: none; }
+.search-input::placeholder { color: var(--text-soft); }
+.search-icon { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); font-size: 16px; pointer-events: none; }
+.search-results { position: absolute; top: 100%; left: 16px; right: 16px; z-index: 50; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-sm); max-height: 220px; overflow-y: auto; }
+.search-result-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.15s; display: flex; justify-content: space-between; align-items: center; }
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:active { background: var(--surface); }
+.sri-name { font-size: 12px; font-weight: 500; }
+.sri-vals { font-size: 10px; color: var(--text-soft); }
+
+/* ── ADD FORM ── */
+.add-form { padding: 0 16px; }
+.add-form-card { background: var(--surface2); border-radius: var(--r); padding: 14px; border: 1px solid rgba(168,85,247,0.3); margin-bottom: 10px; }
+.add-form-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; background: linear-gradient(135deg, var(--accent2), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.qty-row { display: flex; gap: 8px; align-items: flex-end; }
+.qty-row .field { flex: 1; margin-bottom: 0; }
+.macro-preview { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.mp-chip { font-size: 10px; background: var(--bg2); padding: 4px 9px; border-radius: 8px; border: 1px solid var(--border); }
+.mp-chip span { font-weight: 700; }
+.mp-chip.kcal span { color: var(--accent2); }
+.mp-chip.prot span { color: var(--blue); }
+.mp-chip.gluc span { color: var(--yellow); }
+.mp-chip.lip  span { color: var(--orange); }
+
+/* ── LOG ITEMS ── */
+.meal-log { padding: 0 16px; }
+.log-group { margin-bottom: 14px; }
+.log-group-title { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-soft); margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.log-item { background: var(--surface); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between; border-left: 3px solid transparent; animation: slideUp 0.2s ease; }
+@keyframes slideUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.log-item.pdi { border-left-color: var(--green); }
+.log-item.dej { border-left-color: var(--blue); }
+.log-item.col { border-left-color: var(--yellow); }
+.log-item.din { border-left-color: var(--orange); }
+.li-left { flex: 1; min-width: 0; }
+.li-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.li-detail { font-size: 10px; color: var(--text-soft); margin-top: 2px; }
+.li-kcal { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--accent2); margin-right: 8px; white-space: nowrap; }
+.li-del { background: none; border: none; cursor: pointer; color: var(--text-soft); font-size: 14px; padding: 4px; transition: color 0.2s; }
+.li-del:hover { color: var(--red); }
+
+/* ── AI ── */
+.ai-loader { display: none; align-items: center; gap: 8px; padding: 8px 16px; font-size: 11px; color: var(--text-soft); }
+.ai-loader.show { display: flex; }
+.dots span { display: inline-block; width: 5px; height: 5px; background: var(--accent2); border-radius: 50%; animation: bounce 1s infinite; }
+.dots span:nth-child(2) { animation-delay: 0.15s; }
+.dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bounce { 0%,80%,100%{ transform:translateY(0);opacity:0.3; } 40%{ transform:translateY(-5px);opacity:1; } }
+
+/* ── OBJECTIFS ── */
+.obj-panel { background: var(--surface); border-radius: var(--r); margin: 12px 16px; padding: 16px; border: 1px solid var(--border); }
+.obj-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; color: var(--accent3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+.obj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.taux-display { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; background: linear-gradient(135deg, var(--accent2), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+input[type=range] { width: 100%; accent-color: var(--accent2); }
+.obj-applied { background: var(--bg2); border-radius: var(--r-sm); padding: 10px 12px; margin-top: 10px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; border: 1px solid var(--border); }
+.oai-val { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+.oai-label { font-size: 9px; color: var(--text-soft); }
+
+/* ── REPARTITION TABLE ── */
+.rep-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.rep-table th { padding: 7px 8px; border-bottom: 1px solid var(--border); color: var(--text-soft); text-align: left; font-weight: 600; }
+.rep-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
+.rep-table tr:last-child td { border-bottom: none; }
+
+/* ── BODY TRACKING ── */
+.measure-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; }
+.measure-group-title { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; color: var(--accent3); text-transform: uppercase; letter-spacing: 1px; padding: 12px 16px 6px; }
+.result-card { background: var(--surface); border-radius: var(--r); padding: 16px; margin: 12px 16px; border: 1px solid var(--border); }
+.bf-display { font-family: 'Syne', sans-serif; font-size: 44px; font-weight: 800; background: linear-gradient(135deg, var(--accent2), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.stat-box { background: var(--bg2); border-radius: var(--r-sm); padding: 10px; text-align: center; border: 1px solid var(--border); }
+.stat-val { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+.stat-label { font-size: 9px; color: var(--text-soft); margin-top: 3px; }
+
+/* ── HISTORY ── */
+.history-list { padding: 0 16px; }
+.hist-item { background: var(--surface); border-radius: var(--r-sm); padding: 11px 14px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border); }
+.hist-date { font-size: 11px; color: var(--text-soft); margin-top: 2px; }
+.hist-vals { display: flex; gap: 8px; align-items: center; }
+.hist-val { font-size: 11px; font-weight: 600; }
+.hist-del { background: none; border: none; cursor: pointer; color: var(--text-soft); font-size: 12px; margin-left: 4px; }
+
+/* ── CHART ── */
+.chart-wrap { margin: 12px 16px; background: var(--surface); border-radius: var(--r); padding: 14px; border: 1px solid var(--border); position: relative; height: 180px; }
+.chart-title { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-soft); margin-bottom: 8px; }
+
+/* ── RECETTES ── */
+.recipe-card { background: var(--surface); border-radius: var(--r); margin: 0 16px 10px; border: 1px solid var(--border); overflow: hidden; }
+.recipe-header { padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.recipe-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); }
+.recipe-macros-mini { font-size: 10px; color: var(--text-soft); margin-top: 2px; }
+.recipe-body { padding: 0 14px 12px; border-top: 1px solid var(--border); }
+.recipe-ingredient { font-size: 11px; color: var(--text-soft); padding: 4px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+.recipe-ingredient:last-child { border-bottom: none; }
+
+/* ── HISTORIQUE JOURS ── */
+.day-hist-item { background: var(--surface); border-radius: var(--r-sm); margin: 0 16px 8px; padding: 12px 14px; border: 1px solid var(--border); cursor: pointer; }
+.day-hist-date { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; color: var(--text); }
+.day-hist-macros { font-size: 10px; color: var(--text-soft); margin-top: 4px; }
+
+/* ── DONNÉES ── */
+.sunday-banner { margin: 14px 16px 0; background: linear-gradient(135deg, var(--orange), var(--yellow)); border-radius: var(--r); padding: 16px; }
+.sunday-banner h3 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; color: #000; margin-bottom: 4px; }
+.sunday-banner p { font-size: 12px; color: rgba(0,0,0,0.7); margin-bottom: 12px; }
+
+/* ── ALERT ── */
+.alert { border-radius: var(--r-sm); padding: 10px 14px; font-size: 11px; margin: 8px 0; line-height: 1.5; }
+.alert-info { background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.2); color: var(--blue); }
+.alert-warn { background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); color: var(--orange); }
+.alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: var(--green); }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: calc(var(--tab-h) + 12px); left: 50%; transform: translateX(-50%) translateY(20px); background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; padding: 12px 18px; border-radius: 20px; font-size: 11px; font-weight: 700; opacity: 0; transition: all 0.3s; z-index: 999; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── DIVIDER ── */
+.divider { display: flex; align-items: center; gap: 10px; padding: 4px 16px 10px; }
+.divider-line { flex: 1; height: 1px; background: var(--border); }
+.divider-text { font-size: 10px; color: var(--text-soft); text-transform: uppercase; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pinScreen">
+  <div class="pin-logo">NUTRIROCH</div>
+  <div class="pin-subtitle">Code PIN requis</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-grid">
+    <button class="pin-key" onclick="pinPress('1')">1</button>
+    <button class="pin-key" onclick="pinPress('2')">2</button>
+    <button class="pin-key" onclick="pinPress('3')">3</button>
+    <button class="pin-key" onclick="pinPress('4')">4</button>
+    <button class="pin-key" onclick="pinPress('5')">5</button>
+    <button class="pin-key" onclick="pinPress('6')">6</button>
+    <button class="pin-key" onclick="pinPress('7')">7</button>
+    <button class="pin-key" onclick="pinPress('8')">8</button>
+    <button class="pin-key" onclick="pinPress('9')">9</button>
+    <button class="pin-key empty"></button>
+    <button class="pin-key" onclick="pinPress('0')">0</button>
+    <button class="pin-key del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-error-msg" id="pinError">Code incorrect — réessayez</div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <span class="app-name">NUTRIROCH</span>
+  <div class="day-toggle">
+    <button class="day-toggle-btn train active-train" id="btnTrain" onclick="setDayMode('train')">🏋️ Training</button>
+    <button class="day-toggle-btn off" id="btnOff" onclick="setDayMode('off')">😴 Off</button>
+  </div>
+</div>
+
+<!-- MACRO SUMMARY -->
+<div class="macro-summary" id="macroSummaryBar">
+  <div class="macro-row">
+    <div>
+      <div class="macro-main-val" id="totalKcal">0</div>
+      <div class="macro-main-label">kcal · objectif <span id="targetKcalLabel">—</span></div>
+    </div>
+    <div class="macro-chips">
+      <div class="macro-chip"><div class="mc-val prot" id="sumProt">0g</div><div class="mc-label">Prot</div></div>
+      <div class="macro-chip"><div class="mc-val gluc" id="sumGluc">0g</div><div class="mc-label">Gluc</div></div>
+      <div class="macro-chip"><div class="mc-val lip"  id="sumLip">0g</div><div class="mc-label">Lip</div></div>
+    </div>
+  </div>
+  <div class="bars">
+    <div class="bar-wrap"><div class="bar-label"><span>Kcal</span><span id="pctKcal">0%</span></div><div class="bar-track"><div class="bar-fill kcal" id="barKcal" style="width:0%"></div></div></div>
+    <div class="bar-wrap"><div class="bar-label"><span>Prot</span><span id="pctProt">0%</span></div><div class="bar-track"><div class="bar-fill prot" id="barProt" style="width:0%"></div></div></div>
+    <div class="bar-wrap"><div class="bar-label"><span>Gluc</span><span id="pctGluc">0%</span></div><div class="bar-track"><div class="bar-fill gluc" id="barGluc" style="width:0%"></div></div></div>
+    <div class="bar-wrap"><div class="bar-label"><span>Lip</span><span id="pctLip">0%</span></div><div class="bar-track"><div class="bar-fill lip" id="barLip" style="width:0%"></div></div></div>
+  </div>
+</div>
+
+<!-- ═══ PAGE MACROS ═══ -->
+<div class="page active" id="page-macros">
+  <div class="sec" style="margin-bottom:8px"><div class="sec-label">Repas actif</div></div>
+  <div class="meal-tabs">
+    <button class="meal-tab active" onclick="setMeal('pdi',this)">🌅 Petit-déj</button>
+    <button class="meal-tab" onclick="setMeal('dej',this)">☀️ Déjeuner</button>
+    <button class="meal-tab" onclick="setMeal('col',this)">🍎 Collation</button>
+    <button class="meal-tab" onclick="setMeal('din',this)">🌙 Dîner</button>
+  </div>
+
+  <div class="sec-label" style="padding:0 16px;margin-bottom:8px">Ajouter un aliment</div>
+  <div class="search-wrap" style="position:relative">
+    <input class="search-input" id="searchInput" placeholder="Rechercher un aliment…" autocomplete="off">
+    <span class="search-icon">🔍</span>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <div class="add-form" id="addForm" style="display:none">
+    <div class="add-form-card">
+      <div class="add-form-name" id="selectedFoodName">—</div>
+      <div class="macro-preview">
+        <div class="mp-chip kcal">100g = <span id="prev100kcal">—</span> kcal</div>
+        <div class="mp-chip prot">P <span id="prev100prot">—</span>g</div>
+        <div class="mp-chip gluc">G <span id="prev100gluc">—</span>g</div>
+        <div class="mp-chip lip">L <span id="prev100lip">—</span>g</div>
+      </div>
+      <div class="qty-row" style="margin-top:12px">
+        <div class="field"><div class="field-label">Quantité (g)</div><input class="input" type="number" id="qtyInput" value="100" min="1" oninput="updatePreview()"></div>
+        <button class="btn btn-primary" style="margin-bottom:0;flex-shrink:0" onclick="addToLog()">+ Ajouter</button>
+      </div>
+      <div class="macro-preview" style="margin-top:8px">
+        <div class="mp-chip kcal">= <span id="prevQkcal">—</span> kcal</div>
+        <div class="mp-chip prot">P <span id="prevQprot">—</span>g</div>
+        <div class="mp-chip gluc">G <span id="prevQgluc">—</span>g</div>
+        <div class="mp-chip lip">L <span id="prevQlip">—</span>g</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"><div class="divider-line"></div><span class="divider-text">ou saisie IA</span><div class="divider-line"></div></div>
+  <div style="padding:0 16px;display:flex;gap:8px;margin-bottom:4px">
+    <input class="input" id="aiInput" placeholder="Ex: 150g poulet grillé + 85g riz basmati" style="flex:1">
+    <button class="btn btn-primary btn-sm" onclick="analyzeWithAI()" style="flex-shrink:0">IA ✦</button>
+  </div>
+  <div class="ai-loader" id="aiLoader"><span>Analyse IA en cours</span><div class="dots"><span></span><span></span><span></span></div></div>
+
+  <div class="sec"><div class="sec-label">Journal du jour</div></div>
+  <div class="meal-log" id="mealLog">
+    <div style="text-align:center;padding:32px 0;color:var(--text-soft);font-size:12px"><div style="font-size:40px;margin-bottom:10px">📋</div>Aucun aliment enregistré</div>
+  </div>
+</div>
+
+<!-- ═══ PAGE OBJECTIFS ═══ -->
+<div class="page" id="page-objectifs">
+
+  <!-- Jour Training -->
+  <div class="obj-panel">
+    <div class="obj-title" style="color:var(--green)">🏋️ Jours d'entraînement</div>
+    <div class="obj-grid">
+      <div class="field"><div class="field-label">Kcal / jour</div><input class="input" type="number" id="objKcal" value="2800"></div>
+      <div class="field"><div class="field-label">Protéines (g)</div><input class="input" type="number" id="objProt" value="227"></div>
+      <div class="field"><div class="field-label">Glucides (g)</div><input class="input" type="number" id="objGluc" value="282"></div>
+      <div class="field"><div class="field-label">Lipides (g)</div><input class="input" type="number" id="objLip" value="97"></div>
+    </div>
+    <div class="field"><div class="field-label">Taux d'ajustement calorique</div>
+      <div class="taux-display" id="tauxDisplay">100%</div>
+      <input type="range" id="tauxRange" min="60" max="130" value="100" step="5" oninput="updateTaux()">
+    </div>
+    <div class="obj-applied">
+      <div class="obj-applied-item"><div class="oai-val" style="color:var(--accent2)" id="appKcal">—</div><div class="oai-label">kcal</div></div>
+      <div class="obj-applied-item"><div class="oai-val" style="color:var(--blue)" id="appProt">—</div><div class="oai-label">protéines</div></div>
+      <div class="obj-applied-item"><div class="oai-val" style="color:var(--yellow)" id="appGluc">—</div><div class="oai-label">glucides</div></div>
+      <div class="obj-applied-item"><div class="oai-val" style="color:var(--orange)" id="appLip">—</div><div class="oai-label">lipides</div></div>
+    </div>
+  </div>
+
+  <!-- Jour OFF -->
+  <div class="obj-panel">
+    <div class="obj-title" style="color:var(--orange)">😴 Jours OFF (déficit)</div>
+    <div class="obj-grid">
+      <div class="field"><div class="field-label">Kcal / jour OFF</div><input class="input" type="number" id="offKcal" value="2200"></div>
+      <div class="field"><div class="field-label">Protéines (g)</div><input class="input" type="number" id="offProt" value="200"></div>
+      <div class="field"><div class="field-label">Glucides (g)</div><input class="input" type="number" id="offGluc" value="200"></div>
+      <div class="field"><div class="field-label">Lipides (g)</div><input class="input" type="number" id="offLip" value="80"></div>
+    </div>
+    <div class="obj-applied" id="offApplied">
+      <div class="obj-applied-item"><div class="oai-val" style="color:var(--orange)" id="offAppKcal">—</div><div class="oai-label">kcal OFF</div></div>
+      <div class="obj-applied-item"><div class="oai-val" style="color:var(--blue)" id="offAppProt">—</div><div class="oai-label">protéines</div></div>
+      <div class="obj-applied-item"><div class="oai-val" style="color:var(--yellow)" id="offAppGluc">—</div><div class="oai-label">glucides</div></div>
+      <div class="obj-applied-item"><div class="oai-val" style="color:var(--orange)" id="offAppLip">—</div><div class="oai-label">lipides</div></div>
+    </div>
+  </div>
+
+  <div style="padding:0 16px 4px"><button class="btn btn-primary btn-full" onclick="saveObjectifs()">Enregistrer les objectifs</button></div>
+
+  <!-- Répartition Phase 2 dynamique -->
+  <div class="sec"><div class="sec-label">Répartition Phase 2 — dynamique</div></div>
+  <div style="padding:0 16px 16px">
+    <div style="background:var(--surface);border-radius:var(--r);border:1px solid var(--border);overflow:hidden">
+      <table class="rep-table">
+        <thead><tr>
+          <th>Repas</th>
+          <th style="color:var(--yellow)">Gluc</th>
+          <th style="color:var(--blue)">Prot</th>
+          <th style="color:var(--orange)">Lip</th>
+          <th style="color:var(--accent2)">Kcal ≈</th>
+        </tr></thead>
+        <tbody id="repTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE CORPS ═══ -->
+<div class="page" id="page-corps">
+
+  <div class="measure-group-title">👤 Informations de base</div>
+  <div class="measure-grid">
+    <div class="field"><div class="field-label">Poids (kg)</div><input class="input" type="number" step="0.1" id="tPoids" placeholder="80.5"></div>
+    <div class="field"><div class="field-label">Taille (cm)</div><input class="input" type="number" id="tTaille" placeholder="180"></div>
+    <div class="field"><div class="field-label">Âge</div><input class="input" type="number" id="tAge" placeholder="25"></div>
+    <div class="field"><div class="field-label">Sexe</div><select class="input" id="tSexe"><option value="homme">Homme</option><option value="femme">Femme</option></select></div>
+  </div>
+
+  <div class="measure-group-title">📏 Mensurations (cm)</div>
+  <div class="measure-grid">
+    <div class="field"><div class="field-label">① Poitrine</div><input class="input" type="number" step="0.5" id="tPoitrine" placeholder="100"></div>
+    <div class="field"><div class="field-label">② Biceps Droit</div><input class="input" type="number" step="0.5" id="tBicepD" placeholder="35"></div>
+    <div class="field"><div class="field-label">② Biceps Gauche</div><input class="input" type="number" step="0.5" id="tBicepG" placeholder="35"></div>
+    <div class="field"><div class="field-label">③ Ventrale</div><input class="input" type="number" step="0.5" id="tVentrale" placeholder="85"></div>
+    <div class="field"><div class="field-label">④ Fessier</div><input class="input" type="number" step="0.5" id="tFessier" placeholder="95"></div>
+    <div class="field"><div class="field-label">⑤ Cuisse Droite</div><input class="input" type="number" step="0.5" id="tCuisseD" placeholder="58"></div>
+    <div class="field"><div class="field-label">⑤ Cuisse Gauche</div><input class="input" type="number" step="0.5" id="tCuisseG" placeholder="58"></div>
+    <div class="field"><div class="field-label">⑥ Cou</div><input class="input" type="number" step="0.5" id="tCou" placeholder="38"></div>
+    <div class="field"><div class="field-label">⑦ Mollet Droit</div><input class="input" type="number" step="0.5" id="tMolletD" placeholder="38"></div>
+    <div class="field"><div class="field-label">⑦ Mollet Gauche</div><input class="input" type="number" step="0.5" id="tMolletG" placeholder="38"></div>
+    <div class="field"><div class="field-label">Tour de taille</div><input class="input" type="number" step="0.5" id="tTaille2" placeholder="80"></div>
+    <div class="field"><div class="field-label">Tour de hanches</div><input class="input" type="number" step="0.5" id="tHanches" placeholder="95"></div>
+  </div>
+
+  <div style="padding:0 16px 12px"><button class="btn btn-primary btn-full" onclick="saveBodyMeasure()">Enregistrer la mesure</button></div>
+
+  <!-- Résultats -->
+  <div class="result-card" id="resultCard" style="display:none">
+    <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-soft);margin-bottom:12px">Résultats</div>
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <div style="font-size:10px;color:var(--text-soft);margin-bottom:2px">US Navy Method</div>
+        <div class="bf-display" id="mgPct">—</div>
+        <div style="font-size:10px;color:var(--text-soft);margin-top:2px">% masse grasse</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-soft);margin-bottom:2px">BMI Method</div>
+        <div style="font-family:'Syne',sans-serif;font-size:44px;font-weight:800;color:var(--yellow);line-height:1" id="mgPctBMI">—</div>
+        <div style="font-size:10px;color:var(--text-soft);margin-top:2px">% masse grasse</div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-val" style="color:var(--red)" id="mgKg">—</div><div class="stat-label">kg graisse</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--blue)" id="mmKg">—</div><div class="stat-label">kg muscle</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:var(--yellow)" id="imcVal">—</div><div class="stat-label">IMC</div></div>
+    </div>
+    <div class="alert alert-info" id="mgCategory" style="margin-top:10px"></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="chart-wrap"><div class="chart-title">📈 Poids (kg)</div><canvas id="chartPoids"></canvas></div>
+  <div class="chart-wrap"><div class="chart-title">📉 Masse grasse US Navy (%)</div><canvas id="chartMG"></canvas></div>
+  <div class="chart-wrap"><div class="chart-title">💪 Biceps D/G (cm)</div><canvas id="chartBiceps"></canvas></div>
+  <div class="chart-wrap"><div class="chart-title">🦵 Cuisses D/G (cm)</div><canvas id="chartCuisses"></canvas></div>
+
+  <div class="sec"><div class="sec-label">Historique</div></div>
+  <div class="history-list" id="historyList">
+    <div style="text-align:center;padding:20px;color:var(--text-soft);font-size:12px">Aucune mesure enregistrée</div>
+  </div>
+</div>
+
+<!-- ═══ PAGE RECETTES ═══ -->
+<div class="page" id="page-recettes">
+  <div class="sec"><div class="sec-label">Créer une recette</div></div>
+  <div style="padding:0 16px">
+    <div style="background:var(--surface);border-radius:var(--r);padding:14px;border:1px solid var(--border);margin-bottom:10px">
+      <div class="field"><div class="field-label">Nom de la recette</div><input class="input" id="recipeName" placeholder="Ex: Bowl poulet riz"></div>
+      <div class="field"><div class="field-label">Type de repas</div>
+        <select class="input" id="recipeMealType">
+          <option value="pdi">Petit-déjeuner</option>
+          <option value="dej">Déjeuner</option>
+          <option value="col">Collation</option>
+          <option value="din">Dîner</option>
+        </select>
+      </div>
+      <div id="recipeIngredients"></div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input class="input" id="recipeSearchInput" placeholder="Ajouter un ingrédient…" style="flex:1" autocomplete="off">
+        <div style="position:relative;flex:0 0 70px"><input class="input" id="recipeQty" type="number" value="100" placeholder="g"></div>
+      </div>
+      <div class="search-results" id="recipeSearchResults" style="position:relative;top:0;left:0;right:0;margin-bottom:8px"></div>
+      <div class="macro-preview" id="recipeMacroPreview" style="margin-bottom:10px">
+        <div class="mp-chip kcal">Kcal: <span id="rPrevKcal">0</span></div>
+        <div class="mp-chip prot">P: <span id="rPrevProt">0</span>g</div>
+        <div class="mp-chip gluc">G: <span id="rPrevGluc">0</span>g</div>
+        <div class="mp-chip lip">L: <span id="rPrevLip">0</span>g</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="addRecipeIngredient()">+ Ingrédient</button>
+        <button class="btn btn-primary btn-full btn-sm" onclick="saveRecipe()">💾 Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec"><div class="sec-label">Mes recettes</div></div>
+  <div id="recipesList">
+    <div style="text-align:center;padding:30px;color:var(--text-soft);font-size:12px"><div style="font-size:36px;margin-bottom:8px">📖</div>Aucune recette sauvegardée</div>
+  </div>
+</div>
+
+<!-- ═══ PAGE HISTORIQUE ═══ -->
+<div class="page" id="page-historique">
+  <div class="sec"><div class="sec-label">Historique journalier</div></div>
+  <div id="dayHistoryList">
+    <div style="text-align:center;padding:32px;color:var(--text-soft);font-size:12px"><div style="font-size:40px;margin-bottom:10px">📅</div>Aucun historique disponible</div>
+  </div>
+</div>
+
+<!-- ═══ PAGE DONNÉES ═══ -->
+<div class="page" id="page-donnees">
+  <div id="sundayBannerWrap" style="display:none">
+    <div class="sunday-banner">
+      <h3>📅 Rappel du dimanche</h3>
+      <p>Pensez à exporter vos données pour les sauvegarder !</p>
+      <button class="btn btn-sm" style="background:rgba(0,0,0,0.2);color:#000;font-weight:700" onclick="exportData()">Exporter maintenant →</button>
+    </div>
+  </div>
+
+  <div class="sec"><div class="sec-label">Export</div></div>
+  <div style="padding:0 16px">
+    <div style="background:var(--surface);border-radius:var(--r);padding:16px;border:1px solid var(--border);margin-bottom:10px">
+      <p style="font-size:12px;color:var(--text-soft);margin-bottom:14px;line-height:1.6">Téléchargez un fichier <code style="color:var(--accent2);background:var(--bg2);padding:1px 5px;border-radius:4px">JSON</code> contenant toutes vos données (repas, corps, recettes, objectifs). Sauvegardez-le en sécurité.</p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-primary btn-full" onclick="exportData()">⬇ Exporter toutes les données (JSON)</button>
+        <button class="btn btn-ghost btn-full btn-sm" onclick="exportDataCSV()">⬇ Exporter journal (CSV)</button>
+      </div>
+    </div>
+    <div style="background:var(--bg2);border-radius:var(--r-sm);padding:12px 14px;border:1px solid var(--border);margin-bottom:10px;display:flex;justify-content:space-between">
+      <div><div style="font-size:10px;color:var(--text-soft)">Dernière export</div><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700" id="lastExportDate">Jamais</div></div>
+      <div style="text-align:right"><div style="font-size:10px;color:var(--text-soft)">Données</div><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--accent2)" id="exportDataCount">0 items</div></div>
+    </div>
+  </div>
+
+  <div class="sec"><div class="sec-label">Import</div></div>
+  <div style="padding:0 16px">
+    <div style="background:var(--surface);border-radius:var(--r);padding:16px;border:1px solid var(--border);margin-bottom:10px">
+      <p style="font-size:12px;color:var(--text-soft);margin-bottom:14px;line-height:1.6">Restaurez vos données depuis un fichier JSON exporté. ⚠️ Remplace les données actuelles.</p>
+      <label>
+        <div class="btn btn-secondary btn-full" style="cursor:pointer">⬆ Choisir un fichier .json</div>
+        <input type="file" accept=".json" id="importFile" style="display:none" onchange="importData(event)">
+      </label>
+    </div>
+  </div>
+
+  <div class="sec"><div class="sec-label">Réinitialisation</div></div>
+  <div style="padding:0 16px 20px;display:flex;flex-direction:column;gap:8px">
+    <button class="btn btn-sm btn-full" style="background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2)" onclick="resetMeals()">🗑 Effacer le journal</button>
+    <button class="btn btn-sm btn-full" style="background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2)" onclick="resetBody()">🗑 Effacer les mesures corporelles</button>
+    <button class="btn btn-sm btn-full" style="background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3)" onclick="resetAll()">⚠️ Tout réinitialiser</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<nav class="tabs">
+  <button class="tab-btn active" onclick="showPage('macros',this)"><span class="tab-icon">🧮</span>Macros</button>
+  <button class="tab-btn" onclick="showPage('objectifs',this)"><span class="tab-icon">🎯</span>Objectifs</button>
+  <button class="tab-btn" onclick="showPage('corps',this)"><span class="tab-icon">📊</span>Corps</button>
+  <button class="tab-btn" onclick="showPage('recettes',this)"><span class="tab-icon">📖</span>Recettes</button>
+  <button class="tab-btn" onclick="showPage('historique',this)"><span class="tab-icon">📅</span>Historique</button>
+  <button class="tab-btn" onclick="showPage('donnees',this)"><span class="tab-icon">💾</span>Données</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
